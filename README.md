@@ -1,75 +1,39 @@
-# RoboSystems Integration Template
+# RoboSystems Marketing Integration
 
-A scaffold for building custom integrations against the [RoboSystems](https://github.com/RoboFinSystems/robosystems) public API.
+RFS's own marketing and usage metrics, collected from public APIs and asserted as an observed metric series on a [RoboSystems](https://github.com/RoboFinSystems/robosystems) graph — where they render as a time-series Information Block next to the financials.
 
-An integration lives in its own repository — this one — and speaks to the platform exclusively through the public API with an API key. It never runs inside the platform, so it survives every platform release, works identically against the managed cloud or a self-hosted deployment, and is yours to run anywhere: a cron job, a Lambda, a container, a GitHub Actions schedule.
+This is a real integration built from [`robosystems-integration-template`](https://github.com/RoboFinSystems/robosystems-integration-template) (lane 2 — semantic facts), and doubles as the living reference for the pattern: it lives outside the platform, holds its own source access, and speaks only the public API with an API key.
 
-## The three lanes
+## What it tracks
 
-Pick the lane that matches your data's nature (an integration can use more than one):
+| Concept | Kind | Source |
+|---|---|---|
+| `rsx:GithubStars` / `rsx:GithubForks` | instant | GitHub REST across the org's public repos |
+| `rsx:NpmDownloads` | monthly | npm downloads API (`@robosystems/mcp`, `@robosystems/core`) |
+| `rsx:PypiDownloads` | monthly | pypistats (`robosystems-client`, `robosystems-xbrl-holon`) |
+| `rsx:DockerPulls` | instant (cumulative) | Docker Hub (`robofinsystems/robosystems`) |
 
-| Lane | What you send | What the platform enforces | Emitter |
-|---|---|---|---|
-| **1 — Ledger** | Business events → the general ledger | Double-entry balance, capture-then-approve, closed-period gate, `(source, external_id)` idempotency | `emit/events.py` |
-| **2 — Semantic facts** | A custom vocabulary + observed metric series | Typed concepts, presentation structure, per-period replace, provenance | `emit/metrics.py` |
-| **3 — Raw graph** | Parquet/CSV files → staging → graph | Per-graph schema, bulk ingestion pipeline | `emit/graph.py` |
+With `GITHUB_TOKEN` set, GitHub **traffic** (views/clones) is also snapshotted — the perishable source: the API retains 14 days, so history exists only because this integration keeps collecting it. The tracked-asset catalog and the vocabulary live in `src/integration/sources.py`.
 
-- **Lane 1** is for data that *is* accounting: invoices, payments, payroll from a system the platform has no adapter for. Events land in an inbox (`captured`), an operator approves, handlers derive the GL entries.
-- **Lane 2** is for data that is *facts but not bookkeeping*: marketing counts, usage numbers, operational KPIs. Author your vocabulary once (`create-taxonomy-block`), then assert observed values per period (`assert-metrics`). The platform renders the series everywhere — envelopes, charts, fact grids, GraphQL, MCP — with no further work.
-- **Lane 3** is for graph-shaped domain data: upload files, stage, materialize. Combined with the per-graph schema operations you can stand up a complete custom knowledge graph.
+## How it works
 
-## Quickstart
+Each run (daily on the `run.yml` schedule, or `just run`):
 
-1. Click **Use this template** and create your integration repo (typically private).
-2. Clone it, then:
+1. **Snapshot** every source into `data/observations/{date}/` — raw history accumulates run over run; for snapshot-only values (stars, pulls) these files *are* the series.
+2. **Pull history** from the sources that carry their own (npm: 18 months; PyPI: ~180 days).
+3. **Roll up to months** and assert each one via the `assert-metrics` operation — historical months backfill on the first run; the current month re-asserts with fresher values until it closes (replace-per-period makes re-runs idempotent).
+
+The vocabulary — a `block_type='metric'` structure with no Derive rules — is authored once via `create-taxonomy-block` and resolved by name on every run after. The platform renders the series everywhere (Block Explorer, charts, fact grids, GraphQL, MCP) with no further work here.
+
+## Running
 
 ```bash
-just venv         # environment + dependencies + git hooks (.env provisioned from .env.example)
-# fill in API key + graph id in .env
-just run          # collect → transform → emit
+just venv          # environment + dependencies + git hooks
+# fill in .env: ROBOSYSTEMS_API_KEY, ROBOSYSTEMS_GRAPH_ID
+just run
 ```
 
-3. Replace the stubs in `src/integration/collect.py` and `transform.py` with your source's extract/transform, and wire the emitter(s) for your lane in `main.py`.
-
-Day-to-day commands mirror the other RoboSystems Python repos: `just test`, `just test-all` (tests + format + lint + typecheck — the CI gate), `just lint`, `just format`, `just typecheck`, `just create-feature <type> <name>`.
-
-## Layout
-
-```
-src/integration/
-  config.py       # env-driven settings (.env supported)
-  client.py       # robosystems-client SDK wired with API-key auth,
-                  # plus envelope unwrapping + a raw-op escape hatch
-  collect.py      # YOUR extract — pull from your source system
-  transform.py    # YOUR transform — shape raw data for the lane you use
-  emit/
-    events.py     # lane 1: create-event-block
-    metrics.py    # lane 2: create-taxonomy-block + assert-metrics
-    graph.py      # lane 3: create-file-upload → ingest-file → materialize
-  main.py         # collect → transform → emit
-```
-
-The split is deliberate: **you own extract and transform** (they're specific to your source); **the platform owns validation and load** (the operations behind the API). Credentials for *your source system* stay on your side — the platform never holds them.
-
-## Conventions that matter
-
-- **Idempotency**: lane-1 events carry `(source, external_id)` — re-sending the same event is a no-op, so retries are always safe. Operations also accept an `Idempotency-Key` header (the client sends one when you pass it).
-- **Raw history is yours**: keep your raw pulls (e.g. daily JSON snapshots) in your own storage; send the platform the rolled-up series at your reporting cadence. Backfill is one loop over your history.
-- **One source name per integration**: your integration's registered source name is its identity stamp on everything it writes.
-
-## Deploying
-
-An integration is a small program that runs on a schedule — the contract is env vars in, API calls out — so the runtime is swappable. The ladder, in increasing weight:
-
-1. **GitHub Actions (the default, included)**: `.github/workflows/run.yml` runs the integration on a cron with zero infrastructure. Set `secrets.ROBOSYSTEMS_API_KEY` plus `vars.ROBOSYSTEMS_GRAPH_ID` / `vars.INTEGRATION_SOURCE_NAME` in the repo settings and it's deployed. Standard runners give 4 vCPU / 16 GB and a 6-hour cap — ample for API-pull collectors.
-2. **GitHub Actions, larger runner**: heavy backfills or transforms get real memory/CPU with a one-line `runs-on` change (e.g. `ubuntu-latest-8-cores`) — still zero infrastructure.
-3. **ECS Fargate scheduled task**: full resource control and CloudWatch visibility when an integration outgrows runners — EventBridge Scheduler → `RunTask`, no service or load balancer, public subnet with egress only (the integration never needs to be inside a VPC; the API is the boundary). This template doesn't ship the CloudFormation for it — bring it when you graduate.
-
-Secrets (API key, source credentials) belong in your runtime's secret store — repo secrets, or the task's secret manager — never in the repo.
-
-## SDK
-
-The [`robosystems-client`](https://pypi.org/project/robosystems-client/) Python SDK is how the emitters interface with the platform — typed request/response models and one generated function per operation (`robosystems_client.api.*`), regenerated from the live [OpenAPI spec](https://api.robosystems.ai/openapi.json). Brand-new operations occasionally land on the API before the SDK's next regeneration; `IntegrationClient.raw_operation` reaches those through the same authenticated client until the typed function exists.
+On a schedule: set `secrets.ROBOSYSTEMS_API_KEY` plus `vars.ROBOSYSTEMS_GRAPH_ID` / `vars.INTEGRATION_SOURCE_NAME` (and optionally `secrets.GITHUB_TOKEN` for traffic) in the repo's Actions settings — `run.yml` does the rest. `just test-all` is the CI gate (tests + format + lint + typecheck).
 
 ## License
 
