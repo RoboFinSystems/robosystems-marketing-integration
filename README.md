@@ -37,4 +37,7 @@ On a schedule: set `secrets.ROBOSYSTEMS_API_KEY` plus `vars.ROBOSYSTEMS_GRAPH_ID
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+MIT © 2026 RFS LLC
+
