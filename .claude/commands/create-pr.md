@@ -1,93 +1,66 @@
+---
+description: Open a pull request for the current branch, writing the description from the work actually done.
+argument-hint: '[target-branch] [review]'
+---
+
 Create a GitHub pull request for the current branch, writing the title and description from the actual work done in this session — not reconstructed from the diff.
 
 ## Why this command exists
 
-The previous flow outsourced PR-description authoring to a GitHub Action that only saw the diff and commit messages. It could not know _why_ the changes were made, so it frequently described things that weren't true. Those inaccurate descriptions then fed `@claude` reviews, compounding the bad information. This command fixes that at the root: **you author the description here, where the full context of what was done and why is available.**
+A description written from the diff alone can't know _why_ a change was made, so it tends to describe things that aren't true. **You author it here, where the full context is available.**
 
-This is the RoboSystems Python client — a type-safe, async-ready Python SDK generated against the RoboSystems API. Tooling is driven by `just`, not npm.
+This is the **RoboSystems marketing integration** — a Lane 2 (semantic facts) integration built from `robosystems-integration-template`, collecting public marketing/usage metrics and asserting them as an observed metric series. It runs daily on the `run.yml` schedule. Everything runs through `uv run`; branches come from `just create-feature <type> <name>`.
 
 ## Instructions
 
 ### 1. Preflight
 
-Run these checks before touching anything:
-
 ```bash
-# Current and target branches
 CURRENT=$(git branch --show-current)
-TARGET=${1:-main}            # override target via the first argument
+TARGET=${1:-main}
 ```
 
-- **Never PR from the default branch.** If `CURRENT` is `main` (or `master`/`staging`), stop and tell the user to switch to a feature branch first.
-- **Source ≠ target.** If `CURRENT == TARGET`, stop.
-- **Uncommitted changes.** Run `git status --porcelain`. If there are uncommitted/staged changes, surface them and ask whether to commit them (respecting the repo's commit rules — never on `main`, no `git add -A`, stage files by name) or proceed without them. The PR description must reflect committed state.
-- **Existing PR.** Check `gh pr list --head "$CURRENT" --base "$TARGET" --json url,number`. If a PR already exists, do **not** create a duplicate — offer to update its title/body with `gh pr edit` instead.
-- **Push the branch.** `gh pr create` requires the branch on the remote. Ensure it's pushed: `git push -u origin "$CURRENT"` (the user invoking `/create-pr` is the explicit, in-the-moment request that authorizes pushing _this feature branch_ — this is the one push allowed without a separate ask; never push `main`).
+- **Never PR from `main`.** **Source ≠ target.** Stop if either holds.
+- **Uncommitted changes**: surface them and ask whether to commit (never on `main`, stage by name, no `git add -A`).
+- **Existing PR**: `gh pr list --head "$CURRENT" --base "$TARGET" --json url,number` — offer `gh pr edit` rather than duplicating.
+- **Push**: `git push -u origin "$CURRENT"`.
 
 ### 2. Gather the real change context
 
-This is the whole point — ground the description in what actually happened:
-
-- **Primary source: this session.** Use what was actually changed and why from the conversation context. This is the information the old GHA workflow never had.
-- **Corroborate against the branch:**
-  ```bash
-  git log --oneline "$TARGET".."$CURRENT"     # commits on this branch
-  git diff --stat "$TARGET"..."$CURRENT"      # files + churn
-  git diff "$TARGET"..."$CURRENT"             # full diff — read it, don't guess
-  ```
-- **Hard rule — no confabulation.** Every claim in the description must be supported by the diff. If you didn't touch the auth client, don't write "auth improvements." If a behavior isn't in the diff, don't mention it. When the session context and the diff disagree, the diff wins and you investigate the discrepancy.
-- **Generated code.** Much of `integration/` is generated from the OpenAPI spec via `just generate-sdk`. If a change is a regeneration, say so plainly rather than narrating individual model edits as if hand-written.
+Use this session as the primary source, corroborate with `git log`, `git diff --stat`, and the full `git diff`. **No confabulation** — every claim must be supported by the diff.
 
 ### 3. Compose the PR
 
-- **Type** — derive from the branch prefix (`feature/` → feat, `bugfix/`/`fix/` → fix, `hotfix/` → fix, `chore/` → chore, `refactor/` → refactor, `release/` → release). Default to `feat` if unprefixed.
-- **Title** — concise (~50–72 chars), conventional-commit style, e.g. `feat(clients): add streaming query helper`. Match the style in `git log`.
-- **Body** — markdown, only sections that apply:
-  - **Summary** — 1–3 sentences: what this PR does and why.
-  - **Changes** — bullets grouped by area/file/module, describing real edits.
-  - **Testing** — state truthfully what was run. If `just test-all` (or a subset like `just test` / `just lint` / `just typecheck`) was run this session, say so and give the result. If nothing was run, say "Not run" — never claim passing tests that weren't executed.
-  - **Notes / Follow-ups** — optional: deferred items, risks, related issues, SDK-regeneration implications.
-- **Attribution** — attribute to the user only. Do **not** add a "Generated with Claude Code" footer or a `Co-Authored-By: Claude` trailer (per `CLAUDE.local.md`). Include such a line only if the user explicitly asks.
+- **Title** — conventional-commit style with a scope, matching `git log`.
+- **Body** — **match the headings in `.github/PULL_REQUEST_TEMPLATE.md`**, since `--body-file` bypasses template prefill and silently drops omitted sections:
+  - **Summary** — 1–3 sentences.
+  - **Changes** — grouped by stage: collect, transform, emit, config, scheduling.
+  - **Run Impact** — see below. "None" if a scheduled run behaves identically.
+  - **Testing** — the gate is `just test-all` (`test` → `format` → `lint` → `typecheck`). Say explicitly whether anything was run **against the live API**, and if so, against which graph. If nothing was run, say "Not run".
+
+  Put `Closes #123` as the last line of the Summary — the template has no Related Issues section.
+
+- **Run Impact is the judgment that matters.** This runs unattended on a schedule:
+  - Does it change **what gets emitted** — new events, a changed `external_id`, a different period key, a new metric concept? An `external_id` change means the next run re-emits everything it already sent.
+  - Does it change **how much** gets collected — a widened time window or removed limit can make the next scheduled run enormous.
+  - Is it still **idempotent**? Lane 1 dedupes on `(source, external_id)`; Lane 2 replaces per period.
+  - Does it need a **new secret or variable** set before the next scheduled run? Say so — the schedule won't wait for someone to notice.
+
+- **Never put an API key or a real graph id in the body.**
+- **Attribution** — attribute to the user only; no Claude footer or trailer unless explicitly asked.
 
 ### 4. Create the PR
 
-Write the body to a temp file to avoid shell-escaping problems, then:
-
 ```bash
-gh pr create \
-  --base "$TARGET" \
-  --head "$CURRENT" \
-  --title "<title>" \
-  --body-file /tmp/pr-body.md
+gh pr create --base "$TARGET" --head "$CURRENT" --title "<title>" --body-file /tmp/pr-body.md
 ```
-
-Print the resulting PR URL.
 
 ### 5. Optional Claude review
 
-Only if the user explicitly asks (e.g. passes `review` / `--review` in arguments), request a review:
-
-```bash
-gh pr comment <number> --body "@claude please review this PR"
-```
-
-Otherwise leave it off — the description is now accurate, and the user can run `/pr-review` locally (full context) or `@claude` manually when ready. Do not request review by default.
+Only if the user asks (`review` / `--review`): `gh pr comment <number> --body "@claude please review this PR"`.
 
 ## Output
 
-After creating the PR, report:
-
-1. The PR URL.
-2. A one-line summary of the title.
-3. Target ← source branches.
-4. Whether a Claude review was requested.
-
-## Arguments
-
-`$ARGUMENTS` may contain:
-
-- A target branch (default `main`).
-- `review` / `--review` to auto-request a `@claude` review.
-- Freeform guidance on what to emphasize in the description.
+1. PR URL. 2. Title. 3. Target ← source. 4. Run Impact, including anything needed before the next scheduled run. 5. Whether a review was requested.
 
 $ARGUMENTS
