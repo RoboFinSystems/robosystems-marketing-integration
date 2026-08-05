@@ -1,94 +1,51 @@
+---
+description: Create a GitHub issue for this integration, routed to the right repo.
+argument-hint: '[what the issue is about]'
+---
+
 Create a GitHub issue for the current repository based on the user's input.
 
 ## Instructions
 
-1. **Determine Issue Type** - Based on the user's description, determine which type to use:
-   - **Bug**: Defects or unexpected behavior
-   - **Task**: Specific, bounded work items that can be completed in one PR
-   - **Feature**: Request a new capability (no design required)
-   - **RFC**: Propose a design for discussion before implementation (if available)
-   - **Spec**: Approved implementation plan ready for execution (if available)
+1. **Work out which repo owns it** - An integration talks to the RoboSystems platform exclusively through its public API. So:
+   - **Belongs here**: the collect step, the transform, how the emitters are wired, configuration, scheduling.
+   - **Belongs in `RoboFinSystems/robosystems`**: the API rejecting something it should accept, an operation behaving differently than documented, a platform-side guarantee not holding (double-entry balance, the closed-period gate, `(source, external_id)` idempotency, per-period replacement).
+   - **Belongs in `RoboFinSystems/robosystems-python-client`** if you're using that SDK and its types or call surface are wrong.
+   - **Belongs in `RoboFinSystems/robosystems-integration-template`** if the problem is in the scaffold itself and would affect every integration built from it. This repo is the living reference for that template, so a fix here that generalizes should usually go upstream too.
+   - **Belongs to the source** — GitHub, npm, pypistats, or Docker Hub changing its API or its numbers. Verify against the source directly before assuming the collector is wrong.
 
-   Note: Not all repos have RFC/Spec templates. Check `.github/ISSUE_TEMPLATE/` first.
+   Say which, and include the API response verbatim when the platform rejected something. "The emit failed" without the response body isn't actionable.
 
-2. **Gather Context** - If the user provides a file path or references existing code:
-   - Read the relevant files to understand the current implementation
-   - Check related configuration files
-   - Review any referenced documentation
+2. **Determine Issue Type** - Pick one: **Bug**, **Task**, **Feature**, **RFC**, **Spec**. Confirm what this repo offers — `ls .github/ISSUE_TEMPLATE/` and `gh issue create --help` — rather than assuming.
 
-3. **Draft the Issue** - Use the YAML templates in `.github/ISSUE_TEMPLATE/`:
-   - `bug.yml` - Include reproduction steps, impact, environment
-   - `task.yml` - Be specific about scope and acceptance criteria
-   - `feature.yml` - Capture the need and why it matters
-   - `spec.yml` - Fill in all sections with technical detail (if available)
-   - `rfc.yml` - Comprehensive design with alternatives considered (if available)
+3. **Draft the Issue** - Read the matching template in `.github/ISSUE_TEMPLATE/` and mirror its structure; `gh issue create --title/--body` bypasses templates entirely, which is exactly why the body has to be hand-matched.
 
-4. **Sanitize for Public Visibility** - Before creating:
-   - Remove any internal pricing, margins, or cost details
-   - Remove specific customer names or data
-   - Generalize any sensitive business metrics
-   - Keep technical implementation details (these are fine to share)
+   For a pipeline bug, include: which **lane** (ledger events / semantic facts / raw graph), the stage that failed (collect, transform, emit), the API response if there was one, and whether it reproduces on a re-run — a bug that disappears on retry is an idempotency or ordering bug, which is a different fix.
 
-5. **Create the Issue** - Use `gh issue create` with:
-   - Clear, concise title (no prefixes like [SPEC] - types handle categorization)
-   - Well-formatted markdown body matching the template structure
-   - Appropriate metadata labels (see below)
+4. **Sanitize** - Whatever this repo's visibility, an integration issue is unusually likely to carry secrets and customer data:
+   - **Never** an API key. They appear in pasted `.env` fragments, curl reproductions, and tracebacks.
+   - **Never** a real graph id, or real records from the source system. Invent them.
+   - No internal cost/pricing detail.
 
-6. **Set Issue Type** - After creation, set the issue type via GraphQL:
+5. **Create the Issue**:
+
    ```bash
-   # Get repo info from current directory
-   REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-   OWNER=$(echo $REPO | cut -d'/' -f1)
-   NAME=$(echo $REPO | cut -d'/' -f2)
-
-   # Get issue ID
-   gh api graphql -f query="{ repository(owner: \"$OWNER\", name: \"$NAME\") { issue(number: NUMBER) { id } } }"
-
-   # Get available issue types for this repo
-   gh api graphql -f query="{ repository(owner: \"$OWNER\", name: \"$NAME\") { issueTypes(first: 10) { nodes { id name } } } }"
-
-   # Set type (use correct type ID from above)
-   gh api graphql -f query='mutation { updateIssue(input: { id: "ISSUE_ID", issueTypeId: "TYPE_ID" }) { issue { number } } }'
+   gh issue create --type <Type> --title "<title>" --body-file /tmp/issue-body.md
    ```
 
 ## Labels
 
-Issue types handle primary categorization. Use labels for metadata (varies by repo):
+```bash
+gh label list --limit 100
+```
 
-**Priority** (when to do it):
-- `priority:critical` - Drop everything
-- `priority:high` - Next up
-- `priority:low` - Backlog
-
-**Size** (how long):
-- `size:small` - < 1 day
-- `size:medium` - 1-3 days
-- `size:large` - > 3 days
-
-**Status**:
-- `blocked` - Waiting on something
-- `needs-review` - Ready for review
-
-Check `gh label list` for available labels in the current repo.
-
-## Example Usage
-
-User: "We need to add export functionality"
-
-Response: I'll create a feature issue for export functionality. Let me first understand the current state...
-
-[Read relevant files to understand current implementation]
-[Draft issue matching the template structure]
-[Create issue with gh issue create]
-[Set issue type via GraphQL]
-[Add appropriate labels]
+This repo carries only GitHub's stock labels — it does **not** have the `area:*` / `priority:*` / `size:*` families the platform repos use, and `gh issue create` fails on a label that doesn't exist.
 
 ## Output Format
 
-After creating the issue, provide:
 1. The issue URL
 2. Brief summary of what was created
-3. Issue type and labels applied
-4. Any suggested follow-up tasks or related issues to create
+3. Issue type and any labels applied
+4. Which repo you concluded owns it, and whether the scaffold upstream should get the same fix
 
 $ARGUMENTS
