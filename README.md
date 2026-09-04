@@ -10,7 +10,7 @@ This is a real integration built from [`robosystems-integration-template`](https
 |---|---|---|
 | `rsx:GithubStars` / `rsx:GithubForks` | instant | GitHub REST across the org's public repos |
 | `rsx:NpmDownloads` | monthly | npm downloads API (`@robosystems/mcp`, `@robosystems/core`) |
-| `rsx:PypiDownloads` | monthly | pypistats (`robosystems-client`, `robosystems-xbrl-holon`) |
+| `rsx:PypiDownloads` | monthly | pypistats (`robosystems-client`, `xbrlkit`) |
 | `rsx:DockerPulls` | instant (cumulative) | Docker Hub (`robofinsystems/robosystems`) |
 
 With `GITHUB_TOKEN` set, GitHub **traffic** (views/clones) is also snapshotted — the perishable source: the API retains 14 days, so history exists only because this integration keeps collecting it. The tracked-asset catalog and the vocabulary live in `src/integration/sources.py`.

@@ -16,12 +16,12 @@ GITHUB_REPOS = [
   "robosystems-mcp-client",
   "robosystems-typescript-client",
   "robosystems-python-client",
-  "robosystems-xbrl-holon",
+  "xbrlkit",
 ]
 
 NPM_PACKAGES = ["@robosystems/mcp", "@robosystems/core"]
 
-PYPI_PACKAGES = ["robosystems-client", "robosystems-xbrl-holon"]
+PYPI_PACKAGES = ["robosystems-client", "xbrlkit"]
 
 DOCKER_REPOS = ["robofinsystems/robosystems"]
 
