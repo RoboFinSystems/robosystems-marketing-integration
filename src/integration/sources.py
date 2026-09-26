@@ -25,7 +25,6 @@ from __future__ import annotations
 GITHUB_ORG = "RoboFinSystems"
 GITHUB_REPOS = [
   "robosystems",
-  "robosystems-mcp-client",
   "robosystems-typescript-client",
   "robosystems-python-client",
   "robosystems-app",

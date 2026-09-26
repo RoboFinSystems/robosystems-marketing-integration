@@ -63,7 +63,7 @@ SNAPSHOT = {
   "collected_at": "2026-07-30T12:00:00+00:00",
   "github": {
     "robosystems": {"stars": 19, "forks": 6, "watchers": 2},
-    "robosystems-mcp-client": {"stars": 3, "forks": 1, "watchers": 1},
+    "robosystems-typescript-client": {"stars": 3, "forks": 1, "watchers": 1},
     "xbrlkit": {"stars": 11, "forks": 2, "watchers": 1},
   },
   "dockerhub": {"robofinsystems/robosystems": 38232},
