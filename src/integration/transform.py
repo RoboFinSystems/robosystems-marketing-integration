@@ -24,7 +24,7 @@ from integration.sources import (
   PYPI_PACKAGE,
   SITES,
   XBRLKIT_PYPI_PACKAGE,
-  XBRLKIT_REPO,
+  XBRLKIT_REPOS,
 )
 
 Months = dict[str, dict[str, float]]
@@ -131,7 +131,7 @@ def _add_traffic(months: Months, traffic: dict[str, Any]) -> None:
   for repo, kinds in traffic.get("repos", {}).items():
     for kind, series in kinds.items():
       robosystems_concept, xbrlkit_concept = targets[kind]
-      concept = xbrlkit_concept if repo == XBRLKIT_REPO else robosystems_concept
+      concept = xbrlkit_concept if repo in XBRLKIT_REPOS else robosystems_concept
       if concept is None:
         continue
       for day, count in series.items():
@@ -145,11 +145,12 @@ def snapshot_instants(snapshot: dict[str, Any]) -> dict[str, float]:
   observations: dict[str, float] = {}
   github = snapshot.get("github")
   if github:
-    robosystems = [row for repo, row in github.items() if repo != XBRLKIT_REPO]
+    robosystems = [row for repo, row in github.items() if repo not in XBRLKIT_REPOS]
+    xbrlkit = [row for repo, row in github.items() if repo in XBRLKIT_REPOS]
     observations["rsx:GithubStars"] = sum(r["stars"] for r in robosystems)
     observations["rsx:GithubForks"] = sum(r["forks"] for r in robosystems)
-    if XBRLKIT_REPO in github:
-      observations["rsx:XbrlkitGithubStars"] = github[XBRLKIT_REPO]["stars"]
+    if xbrlkit:
+      observations["rsx:XbrlkitGithubStars"] = sum(r["stars"] for r in xbrlkit)
   docker = snapshot.get("dockerhub")
   if docker:
     observations["rsx:DockerPulls"] = sum(docker.values())

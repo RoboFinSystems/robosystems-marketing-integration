@@ -31,7 +31,7 @@ GITHUB_REPOS = [
   "roboledger-app",
   "roboinvestor-app",
 ]
-XBRLKIT_REPO = "xbrlkit"
+XBRLKIT_REPOS = ["xbrlkit", "xbrlkit-viewer"]
 
 NPM_PACKAGES = ["@robosystems/mcp", "@robosystems/core"]
 

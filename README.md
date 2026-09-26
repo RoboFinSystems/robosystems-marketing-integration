@@ -8,8 +8,8 @@ This is a real integration built from [`robosystems-integration-template`](https
 
 | Series | Kind | Source | Credentials |
 |---|---|---|---|
-| GitHub stars / forks — RoboSystems repos; stars — xbrlkit | instant | GitHub REST | none |
-| GitHub repo views / clones — RoboSystems; views — xbrlkit | monthly | GitHub traffic API | `GITHUB_TOKEN` (PAT, push access) |
+| GitHub stars / forks — RoboSystems repos; stars — xbrlkit + xbrlkit-viewer | instant | GitHub REST | none |
+| GitHub repo views / clones — RoboSystems; views — xbrlkit + xbrlkit-viewer | monthly | GitHub traffic API | `GITHUB_TOKEN` (PAT, push access) |
 | npm downloads (`@robosystems/mcp`, `@robosystems/core`) | monthly | npm downloads API | none |
 | PyPI downloads — `robosystems-client`; `xbrlkit` | monthly | pypistats | none |
 | Docker pulls (`robofinsystems/robosystems`) | instant (cumulative) | Docker Hub | none |

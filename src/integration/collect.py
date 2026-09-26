@@ -44,7 +44,7 @@ from integration.sources import (
   SITES,
   X_HANDLE,
   XBRLKIT_PYPI_PACKAGE,
-  XBRLKIT_REPO,
+  XBRLKIT_REPOS,
 )
 from integration.transform import month_bounds
 
@@ -137,7 +137,7 @@ def collect_github(token: str | None = None) -> dict:
   """Stars/forks/watchers per repo; traffic (views/clones) with a PAT."""
   headers = {"Authorization": f"Bearer {token}"} if token else {}
   repos: dict[str, Any] = {}
-  for name in [*GITHUB_REPOS, XBRLKIT_REPO]:
+  for name in [*GITHUB_REPOS, *XBRLKIT_REPOS]:
     data = _get_json(f"https://api.github.com/repos/{GITHUB_ORG}/{name}", headers)
     entry = {
       "stars": data["stargazers_count"],

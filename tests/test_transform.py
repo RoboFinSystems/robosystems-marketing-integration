@@ -65,6 +65,7 @@ SNAPSHOT = {
     "robosystems": {"stars": 19, "forks": 6, "watchers": 2},
     "robosystems-typescript-client": {"stars": 3, "forks": 1, "watchers": 1},
     "xbrlkit": {"stars": 11, "forks": 2, "watchers": 1},
+    "xbrlkit-viewer": {"stars": 2, "forks": 0, "watchers": 1},
   },
   "dockerhub": {"robofinsystems/robosystems": 38232},
   "huggingface": {"robosystems/sec-xbrl-knowledge-graphs": 169},
@@ -153,6 +154,7 @@ class TestTraffic:
           },
         },
         "xbrlkit": {"traffic_views": _traffic([("2026-10-03", 3)])},
+        "xbrlkit-viewer": {"traffic_views": _traffic([("2026-10-03", 4)])},
       },
     )
     traffic = load_traffic(tmp_path)
@@ -163,7 +165,7 @@ class TestTraffic:
     assert "2026-09" not in months
     assert months["2026-10"]["rsx:GithubViews"] == 7
     assert months["2026-10"]["rsx:GithubClones"] == 2
-    assert months["2026-10"]["rsx:XbrlkitGithubViews"] == 3
+    assert months["2026-10"]["rsx:XbrlkitGithubViews"] == 7
 
   def test_no_traffic_stored(self, tmp_path: Path) -> None:
     assert load_traffic(tmp_path / "missing") == {"repos": {}, "covered_from": None}
@@ -175,7 +177,7 @@ class TestSnapshotInstants:
     observations = snapshot_instants(SNAPSHOT)
     assert observations["rsx:GithubStars"] == 22
     assert observations["rsx:GithubForks"] == 7
-    assert observations["rsx:XbrlkitGithubStars"] == 11
+    assert observations["rsx:XbrlkitGithubStars"] == 13
 
   def test_registries_and_audiences(self) -> None:
     observations = snapshot_instants(SNAPSHOT)
