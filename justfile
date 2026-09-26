@@ -32,6 +32,10 @@ update:
 run:
     uv run python -m integration.main
 
+# Mint the read-only Google grant (Search Console + YouTube) into .env
+google-auth client_json:
+    uv run python bin/google-auth.py {{client_json}}
+
 # Run tests
 test:
     uv run pytest

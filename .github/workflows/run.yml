@@ -12,6 +12,17 @@ name: Run
 #   vars.INTEGRATION_SOURCE_NAME     — registered source name
 #   vars.ROBOSYSTEMS_API_URL         — optional; defaults to the managed cloud
 #
+# Optional source credentials — each source is skipped when they are unset:
+#   secrets.GH_TRAFFIC_TOKEN          — fine-grained PAT, Administration read (traffic)
+#   vars.CLOUDFLARE_ACCOUNT_ID + secrets.CLOUDFLARE_API_TOKEN — Web Analytics
+#   secrets.GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN
+#                                     — read-only grant: Search Console + YouTube
+#   secrets.X_BEARER_TOKEN            — X followers
+#   secrets.BUFFER_API_KEY            — LinkedIn / X post impressions
+#
+# data/ (the daily raw snapshots) rides the Actions cache from run to
+# run. It is the only store of GitHub traffic older than 14 days.
+#
 # Notes: GitHub pauses cron workflows in public repos after 60 days
 # without activity, and skews schedule start times — don't depend on
 # minute-level precision.
@@ -20,6 +31,9 @@ on:
   schedule:
     - cron: '17 5 * * *' # daily ~05:17 UTC — align to your source's cadence
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   run:
@@ -42,10 +56,32 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Restore raw observations
+        uses: actions/cache/restore@v6
+        with:
+          path: data
+          key: observations-${{ github.run_id }}
+          restore-keys: observations-
+
       - name: Run integration
         env:
           ROBOSYSTEMS_API_URL: ${{ vars.ROBOSYSTEMS_API_URL || 'https://api.robosystems.ai' }}
           ROBOSYSTEMS_API_KEY: ${{ secrets.ROBOSYSTEMS_API_KEY }}
           ROBOSYSTEMS_GRAPH_ID: ${{ vars.ROBOSYSTEMS_GRAPH_ID }}
           INTEGRATION_SOURCE_NAME: ${{ vars.INTEGRATION_SOURCE_NAME }}
+          GH_TRAFFIC_TOKEN: ${{ secrets.GH_TRAFFIC_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
         run: uv run python -m integration.main
+
+      - name: Save raw observations
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: data
+          key: observations-${{ github.run_id }}
