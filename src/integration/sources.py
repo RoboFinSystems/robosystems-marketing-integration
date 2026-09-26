@@ -28,6 +28,9 @@ GITHUB_REPOS = [
   "robosystems-mcp-client",
   "robosystems-typescript-client",
   "robosystems-python-client",
+  "robosystems-app",
+  "roboledger-app",
+  "roboinvestor-app",
 ]
 XBRLKIT_REPO = "xbrlkit"
 
