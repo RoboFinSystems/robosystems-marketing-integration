@@ -27,6 +27,23 @@ def _find_structure(client: IntegrationClient) -> tuple[str, set[str]] | None:
   return None
 
 
+def asserted_values(client: IntegrationClient) -> dict[str, dict[str, float]]:
+  """The values already on the structure, as ``{month: {qname: value}}``."""
+  data = client.graphql(
+    '{ informationBlocks(blockType: "metric") '
+    "{ name facts { elementQname value periodEnd } } }"
+  )
+  months: dict[str, dict[str, float]] = {}
+  for block in data.get("informationBlocks") or []:
+    if block.get("name") != STRUCTURE_NAME:
+      continue
+    for fact in block.get("facts") or []:
+      if fact.get("value") is not None:
+        month = str(fact["periodEnd"])[:7]
+        months.setdefault(month, {})[fact["elementQname"]] = float(fact["value"])
+  return months
+
+
 def _rs_gaap_taxonomy_id(client: IntegrationClient) -> str:
   data = client.graphql(
     '{ taxonomies(taxonomyType: "reporting_standard") { taxonomies { id standard } } }'

@@ -166,6 +166,24 @@ def snapshot_instants(snapshot: dict[str, Any]) -> dict[str, float]:
   return {concept: float(value) for concept, value in observations.items()}
 
 
+def merge_asserted(asserted: Months, fresh: Months) -> Months:
+  """Overlay this run's values on what the graph already holds.
+
+  Asserting a period replaces every value in it, so a month asserted
+  without a source that failed this run would lose that source's
+  stored value. Carrying the stored values forward keeps a flaky API
+  from erasing history. Months whose values are unchanged are omitted
+  — there is nothing to re-assert.
+  """
+  merged: Months = {}
+  for month, observations in fresh.items():
+    stored = asserted.get(month, {})
+    combined = {**stored, **observations}
+    if combined != stored:
+      merged[month] = combined
+  return merged
+
+
 def transform(snapshot: dict[str, Any], history: dict[str, Any]) -> Months:
   """Build the full per-month observation sets to assert.
 

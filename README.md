@@ -9,7 +9,7 @@ This is a real integration built from [`robosystems-integration-template`](https
 | Series | Kind | Source | Credentials |
 |---|---|---|---|
 | GitHub stars / forks — RoboSystems repos; stars — xbrlkit + xbrlkit-viewer | instant | GitHub REST | none |
-| GitHub repo views / clones — RoboSystems; views — xbrlkit + xbrlkit-viewer | monthly | GitHub traffic API | `GITHUB_TOKEN` (PAT, push access) |
+| GitHub repo views / clones — RoboSystems; views — xbrlkit + xbrlkit-viewer | monthly | GitHub traffic API | `GH_TRAFFIC_TOKEN` (fine-grained PAT, Administration read) |
 | npm downloads (`@robosystems/mcp`, `@robosystems/core`) | monthly | npm downloads API | none |
 | PyPI downloads — `robosystems-client`; `xbrlkit` | monthly | pypistats | none |
 | Docker pulls (`robofinsystems/robosystems`) | instant (cumulative) | Docker Hub | none |
@@ -44,7 +44,7 @@ just venv          # environment + dependencies + git hooks
 just run
 ```
 
-On a schedule: set `secrets.ROBOSYSTEMS_API_KEY` plus `vars.ROBOSYSTEMS_GRAPH_ID` / `vars.INTEGRATION_SOURCE_NAME` in the repo's Actions settings, and whichever source credentials you want — the list is in `run.yml`'s header. The traffic PAT goes in `secrets.GH_TRAFFIC_TOKEN` (GitHub reserves the `GITHUB_` prefix). `run.yml` does the rest. `just test-all` is the CI gate (tests + format + lint + typecheck).
+On a schedule: set `secrets.ROBOSYSTEMS_API_KEY` plus `vars.ROBOSYSTEMS_GRAPH_ID` / `vars.INTEGRATION_SOURCE_NAME` in the repo's Actions settings, and whichever source credentials you want — the list is in `run.yml`'s header. The traffic PAT goes in `secrets.GH_TRAFFIC_TOKEN`. `run.yml` does the rest. `just test-all` is the CI gate (tests + format + lint + typecheck).
 
 ## License
 

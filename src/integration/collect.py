@@ -4,7 +4,7 @@ Two kinds of pull:
 
 - **Snapshot** (`collect`): today's values for every source — stars,
   forks, cumulative Docker/Hugging Face downloads, follower counts, and
-  (with ``GITHUB_TOKEN``) the 14-day traffic window. Written to
+  (with ``GH_TRAFFIC_TOKEN``) the 14-day traffic window. Written to
   ``data/observations/{date}/``; ``run.yml`` carries ``data/`` from run
   to run in the Actions cache, so snapshot-only values accumulate
   there and traffic keeps its history past GitHub's 14 days.
@@ -213,7 +213,7 @@ def collect(config: Config) -> dict[str, Any]:
   out_dir.mkdir(parents=True, exist_ok=True)
 
   collectors = {
-    "github": lambda: collect_github(os.environ.get("GITHUB_TOKEN") or None),
+    "github": lambda: collect_github(os.environ.get("GH_TRAFFIC_TOKEN") or None),
     "npm": collect_npm_yesterday,
     "dockerhub": collect_dockerhub,
     "huggingface": collect_huggingface,

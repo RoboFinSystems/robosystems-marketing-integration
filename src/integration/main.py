@@ -17,8 +17,8 @@ from integration.collect import collect, collect_history
 from integration.config import load_config
 from integration.emit.metrics import assert_metrics
 from integration.sources import CONCEPTS
-from integration.transform import month_bounds, transform
-from integration.vocabulary import ensure_structure
+from integration.transform import merge_asserted, month_bounds, transform
+from integration.vocabulary import asserted_values, ensure_structure
 
 
 def run() -> None:
@@ -33,12 +33,14 @@ def run() -> None:
 
     snapshot = collect(config)
     history = collect_history()
-    months = transform(snapshot, history)
+    fresh = {
+      month: {q: v for q, v in observations.items() if q in catalog}
+      for month, observations in transform(snapshot, history).items()
+    }
+    months = merge_asserted(asserted_values(client), fresh)
 
     for month in sorted(months):
-      observations = {q: v for q, v in months[month].items() if q in catalog}
-      if not observations:
-        continue
+      observations = months[month]
       period_start, period_end = month_bounds(month)
       assert_metrics(
         client,
@@ -49,7 +51,7 @@ def run() -> None:
         basis_note=f"collected {snapshot.get('collected_at', '')[:10]}",
       )
       print(f"asserted {month}: {sorted(observations)}")
-    print(f"done — {len(months)} month(s)")
+    print(f"done — {len(months)} month(s) changed")
   finally:
     client.close()
 

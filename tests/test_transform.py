@@ -8,6 +8,7 @@ from pathlib import Path
 
 from integration.collect import load_traffic, window_start
 from integration.transform import (
+  merge_asserted,
   month_bounds,
   monthly_history,
   snapshot_instants,
@@ -228,3 +229,17 @@ class TestLeadingZeros:
     assert "2026-04" not in months
     assert months["2026-05"]["rsx:NpmDownloads"] == 6
     assert months["2026-06"]["rsx:NpmDownloads"] == 0
+
+
+class TestMergeAsserted:
+  def test_a_failed_source_keeps_its_stored_value(self) -> None:
+    stored = {"2026-08": {"rsx:PypiDownloads": 5104.0, "rsx:NpmDownloads": 5000.0}}
+    fresh = {"2026-08": {"rsx:NpmDownloads": 5582.0}}
+    assert merge_asserted(stored, fresh) == {
+      "2026-08": {"rsx:PypiDownloads": 5104.0, "rsx:NpmDownloads": 5582.0}
+    }
+
+  def test_unchanged_months_are_skipped_and_new_months_kept(self) -> None:
+    stored = {"2026-07": {"rsx:NpmDownloads": 10.0}}
+    fresh = {"2026-07": {"rsx:NpmDownloads": 10.0}, "2026-09": {"rsx:XFollowers": 33.0}}
+    assert merge_asserted(stored, fresh) == {"2026-09": {"rsx:XFollowers": 33.0}}

@@ -5,7 +5,7 @@ Face) always run. Every credentialed source is optional: without its
 environment variables it is skipped, and its concepts simply get no
 value that month.
 
-- ``GITHUB_TOKEN`` — PAT with push access; enables repo traffic. The
+- ``GH_TRAFFIC_TOKEN`` — fine-grained PAT, Administration read; enables repo traffic. The
   perishable source: the API retains only 14 days, so history exists
   only because ``data/`` persists run over run.
 - ``CLOUDFLARE_ACCOUNT_ID`` + ``CLOUDFLARE_API_TOKEN`` — Web Analytics
