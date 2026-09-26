@@ -16,6 +16,7 @@ from integration.client import IntegrationClient
 from integration.collect import collect, collect_history
 from integration.config import load_config
 from integration.emit.metrics import assert_metrics
+from integration.sources import CONCEPTS
 from integration.transform import month_bounds, transform
 from integration.vocabulary import ensure_structure
 
@@ -24,15 +25,18 @@ def run() -> None:
   config = load_config()
   client = IntegrationClient(config)
   try:
-    structure_id = ensure_structure(client)
+    structure_id, catalog = ensure_structure(client)
     print(f"structure: {structure_id}")
+    missing = sorted({c["qname"] for c in CONCEPTS} - catalog)
+    if missing:
+      print(f"  WARN: not on the structure, left unasserted: {missing}")
 
     snapshot = collect(config)
     history = collect_history()
     months = transform(snapshot, history)
 
     for month in sorted(months):
-      observations = months[month]
+      observations = {q: v for q, v in months[month].items() if q in catalog}
       if not observations:
         continue
       period_start, period_end = month_bounds(month)
