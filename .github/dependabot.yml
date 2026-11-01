@@ -1,5 +1,13 @@
 version: 2
 updates:
+  # Python — uv.lock is committed, so Dependabot maintains the lock as well
+  - package-ecosystem: 'uv'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+
   # GitHub Actions — pinned action versions
   - package-ecosystem: 'github-actions'
     directory: '/'
