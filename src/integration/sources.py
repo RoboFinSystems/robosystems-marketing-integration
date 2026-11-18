@@ -14,7 +14,7 @@ value that month.
   ``GOOGLE_REFRESH_TOKEN`` — one read-only OAuth grant covering Search
   Console and YouTube. ``GSC_*`` / ``YOUTUBE_*`` override per service.
 - ``X_BEARER_TOKEN`` — X API v2 app token.
-- ``BUFFER_API_KEY`` — Buffer post analytics (LinkedIn, X).
+- ``BUFFER_API_KEY`` — Buffer post analytics (Joey's LinkedIn, @RoboFinSystems on X).
 
 xbrlkit is its own product, so its artifacts feed their own concepts;
 every "RoboSystems" concept excludes it.
@@ -55,10 +55,12 @@ SEARCH_CONSOLE_PROPERTIES = [f"sc-domain:{host}" for host in SITES]
 
 X_HANDLE = "RoboFinSystems"
 
-# Buffer channel service → concept.
+# Buffer channel (service, handle) → concept. Keyed by handle as well as
+# service so swapping the account connected to Buffer cannot silently
+# change what a series measures; any other connected channel is skipped.
 BUFFER_CHANNELS = {
-  "linkedin": "rsx:LinkedinImpressions",
-  "twitter": "rsx:XPostImpressions",
+  ("linkedin", "josephtfrench"): "rsx:LinkedinImpressions",
+  ("twitter", X_HANDLE.lower()): "rsx:XPostImpressions",
 }
 
 # The metric vocabulary — one concept per series, asserted monthly.

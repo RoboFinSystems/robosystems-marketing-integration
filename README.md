@@ -18,7 +18,7 @@ This is a real integration built from [`robosystems-integration-template`](https
 | Google search impressions / clicks (the five sites) | monthly | Search Console | `GOOGLE_*` |
 | YouTube views / watch minutes; subscribers | monthly; instant | YouTube Analytics + Data API | `GOOGLE_*` |
 | X followers (@RoboFinSystems) | instant | X API v2 | `X_BEARER_TOKEN` |
-| LinkedIn / X post impressions | monthly (by publish month) | Buffer | `BUFFER_API_KEY` |
+| LinkedIn (Joey) / X (@RoboFinSystems) post impressions | monthly (by publish month) | Buffer, matched by channel handle; other channels skipped | `BUFFER_API_KEY` |
 
 Every credentialed source is optional — without its variables it is skipped and its series gets no value that month. `GOOGLE_*` is one read-only grant for Search Console and YouTube; mint it with `just google-auth path/to/client_secret.json`. The catalog and the vocabulary live in `src/integration/sources.py`.
 

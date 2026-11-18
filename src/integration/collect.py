@@ -394,10 +394,12 @@ def history_buffer() -> dict:
   history: dict[str, dict[str, dict]] = {}
   for org in organizations:
     channels = _buffer(
-      f'{{ channels(input: {{organizationId: "{org["id"]}"}}) {{ id service }} }}'
+      f'{{ channels(input: {{organizationId: "{org["id"]}"}}) {{ id service name }} }}'
     )["channels"]
     for channel in channels:
-      concept = BUFFER_CHANNELS.get(channel["service"])
+      concept = BUFFER_CHANNELS.get(
+        (channel["service"], (channel.get("name") or "").lower())
+      )
       if concept is None:
         continue
       for month in _months_since(buffer_start):
